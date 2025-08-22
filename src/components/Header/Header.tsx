@@ -6,7 +6,7 @@ type Props = {
   setTodos: React.Dispatch<React.SetStateAction<Todo[]>>;
   title: string;
   setTitle: React.Dispatch<React.SetStateAction<string>>;
-  field: React.RefObject<HTMLInputElement>;
+  mainInput: React.RefObject<HTMLInputElement>;
   handleSubmit: (event: React.FormEvent) => void;
   isSubmitting: boolean;
 };
@@ -16,7 +16,7 @@ export const Header: React.FC<Props> = ({
   setTodos,
   title,
   setTitle,
-  field,
+  mainInput,
   handleSubmit,
   isSubmitting,
 }) => {
@@ -52,7 +52,7 @@ export const Header: React.FC<Props> = ({
           disabled={isSubmitting}
           value={title}
           onChange={event => setTitle(event.target.value)}
-          ref={field}
+          ref={mainInput}
         />
       </form>
     </header>

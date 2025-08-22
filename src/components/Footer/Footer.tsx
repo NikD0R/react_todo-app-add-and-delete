@@ -3,17 +3,17 @@ import { Todo } from '../../types/Todo';
 import cn from 'classnames';
 
 type Props = {
-  filter: Filter;
+  filterBy: Filter;
   activeCount: number;
-  setFilter: React.Dispatch<React.SetStateAction<Filter>>;
+  setFilterBy: React.Dispatch<React.SetStateAction<Filter>>;
   visibleTodos: Todo[];
   deleteTodo: (id: number) => void;
 };
 
 export const Footer: React.FC<Props> = ({
-  filter,
+  filterBy,
   activeCount,
-  setFilter,
+  setFilterBy,
   visibleTodos,
   deleteTodo,
 }) => {
@@ -23,15 +23,14 @@ export const Footer: React.FC<Props> = ({
         {activeCount} items left
       </span>
 
-      {/* Active link should have the 'selected' class */}
       <nav className="filter" data-cy="Filter">
         <a
           href="#/"
           className={cn('filter__link', {
-            selected: filter === 'all',
+            selected: filterBy === Filter.all,
           })}
           data-cy="FilterLinkAll"
-          onClick={() => setFilter('all')}
+          onClick={() => setFilterBy(Filter.all)}
         >
           All
         </a>
@@ -39,10 +38,10 @@ export const Footer: React.FC<Props> = ({
         <a
           href="#/active"
           className={cn('filter__link', {
-            selected: filter === 'active',
+            selected: filterBy === Filter.active,
           })}
           data-cy="FilterLinkActive"
-          onClick={() => setFilter('active')}
+          onClick={() => setFilterBy(Filter.active)}
         >
           Active
         </a>
@@ -50,16 +49,15 @@ export const Footer: React.FC<Props> = ({
         <a
           href="#/completed"
           className={cn('filter__link', {
-            selected: filter === 'completed',
+            selected: filterBy === Filter.completed,
           })}
           data-cy="FilterLinkCompleted"
-          onClick={() => setFilter('completed')}
+          onClick={() => setFilterBy(Filter.completed)}
         >
           Completed
         </a>
       </nav>
 
-      {/* this button should be disabled if there are no completed todos */}
       <button
         type="button"
         className="todoapp__clear-completed"

@@ -5,9 +5,10 @@ import { Todo } from '../../types/Todo';
 type Props = {
   handleActive: (value: number) => void;
   todo: Todo;
-  deleteTodo: (id: number) => void;
+  deleteTodo: (id: number) => Promise<void>;
   isDeleting: boolean;
   isDeletingSeveral: boolean;
+  isSubmitting?: boolean;
 };
 
 export const ToDo: React.FC<Props> = ({
@@ -16,6 +17,7 @@ export const ToDo: React.FC<Props> = ({
   deleteTodo,
   isDeleting,
   isDeletingSeveral,
+  isSubmitting,
 }) => {
   return (
     <div
@@ -39,7 +41,6 @@ export const ToDo: React.FC<Props> = ({
         {todo.title}
       </span>
 
-      {/* Remove button appears only on hover */}
       <button
         type="button"
         className="todo__remove"
@@ -48,11 +49,10 @@ export const ToDo: React.FC<Props> = ({
       >
         ×
       </button>
-      {/* overlay will cover the todo while it is being deleted or updated */}
       <div
         data-cy="TodoLoader"
         className={cn('modal overlay', {
-          'is-active': isDeleting || isDeletingSeveral,
+          'is-active': isDeleting || isDeletingSeveral || isSubmitting,
         })}
       >
         <div className="modal-background has-background-white-ter" />

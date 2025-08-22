@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
 import * as todosService from './api/todos';
 import { Todo } from './types/Todo';
@@ -9,32 +9,40 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Filter } from './types/Filter';
 import { ErrorNotification } from './components/ErrorNotification';
-import { TempTodo } from './components/TempTodo';
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filterBy, setFilterBy] = useState<Filter>(Filter.all);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const activeCount = todos.filter(todo => !todo.completed).length;
-  const field = useRef<HTMLInputElement>(null);
+  const mainInput = useRef<HTMLInputElement>(null);
 
-  const visibleTodos = todos.filter(todo => {
-    if (filter === 'active') {
-      return !todo.completed;
-    }
+  const allErrors = {
+    loadingTodos: 'Unable to load todos',
+    addingTodo: 'Unable to add a todo',
+    deletingTodo: 'Unable to delete a todo',
+    checkingEmptyTitle: 'Title should not be empty',
+  };
 
-    if (filter === 'completed') {
-      return todo.completed;
-    }
+  const visibleTodos = useMemo(() => {
+    return todos.filter(todo => {
+      if (filterBy === Filter.active) {
+        return !todo.completed;
+      }
 
-    return true;
-  });
+      if (filterBy === Filter.completed) {
+        return todo.completed;
+      }
+
+      return true;
+    });
+  }, [todos, filterBy]);
 
   // eslint-disable-next-line @typescript-eslint/no-shadow
   function addTodo({ title, completed, userId }: Omit<Todo, 'id'>) {
@@ -48,7 +56,7 @@ export const App: React.FC = () => {
         });
       })
       .catch(e => {
-        setError(`Unable to add a todo`);
+        setError(allErrors.addingTodo);
         throw e;
       });
   }
@@ -62,10 +70,10 @@ export const App: React.FC = () => {
       .deleteTodo(id)
       .then(() => {
         setTodos(currentTodos => currentTodos.filter(todo => todo.id !== id));
-        field.current?.focus();
+        mainInput.current?.focus();
       })
       .catch(e => {
-        setError(`Unable to delete a todo`);
+        setError(allErrors.deletingTodo);
         throw e;
       })
       .finally(() => {
@@ -79,8 +87,8 @@ export const App: React.FC = () => {
     const normalizedTitle = title.trim();
 
     if (!normalizedTitle) {
-      setError('Title should not be empty');
-      field.current?.focus();
+      setError(allErrors.checkingEmptyTitle);
+      mainInput.current?.focus();
 
       return;
     }
@@ -102,7 +110,7 @@ export const App: React.FC = () => {
       .then(() => {
         setTitle('');
         setTempTodo(null);
-        field.current?.focus();
+        mainInput.current?.focus();
       })
       .catch(() => setTempTodo(null))
       .finally(() => setIsSubmitting(false));
@@ -117,12 +125,12 @@ export const App: React.FC = () => {
   }
 
   useEffect(() => {
-    field.current?.focus();
+    mainInput.current?.focus();
 
     todosService
       .getTodos()
       .then(setTodos)
-      .catch(() => setError('Unable to load todos'));
+      .catch(() => setError(allErrors.loadingTodos));
   }, []);
 
   useEffect(() => {
@@ -135,7 +143,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     if (!isSubmitting) {
-      setTimeout(() => field.current?.focus(), 0);
+      setTimeout(() => mainInput.current?.focus(), 0);
     }
   }, [isSubmitting]);
 
@@ -151,13 +159,12 @@ export const App: React.FC = () => {
         setTodos={setTodos}
         title={title}
         setTitle={setTitle}
-        field={field}
+        mainInput={mainInput}
         handleSubmit={handleSubmit}
         isSubmitting={isSubmitting}
       />
       <div className="todoapp__content">
         <section className="todoapp__main" data-cy="TodoList">
-          {/* This is a completed todo */}
           {visibleTodos.map(todo => (
             <ToDo
               handleActive={handleActive}
@@ -169,13 +176,15 @@ export const App: React.FC = () => {
             />
           ))}
           {tempTodo && (
-            <TempTodo
+            <ToDo
+              handleActive={handleActive}
               todo={tempTodo}
               deleteTodo={deleteTodo}
-              handleActive={handleActive}
+              isDeleting={deletingId === tempTodo.id}
+              isDeletingSeveral={deletingIds.includes(tempTodo.id)}
+              isSubmitting={isSubmitting}
             />
           )}
-          {/* Editting
           {/* This todo is being edited */}
           {/* <div data-cy="Todo" className="todo">
             <label className="todo__status-label">
@@ -188,9 +197,9 @@ export const App: React.FC = () => {
           {/* This form is shown instead of the title and remove button */}
           {/* <form>
               <input
-                data-cy="TodoTitleField"
+                data-cy="TodoTitlemainInput"
                 type="text"
-                className="todo__title-field"
+                className="todo__title-mainInput"
                 placeholder="Empty todo will be deleted"
                 value="Todo is being edited now"
               />
@@ -205,17 +214,15 @@ export const App: React.FC = () => {
 
         {todos.length > 0 && (
           <Footer
-            filter={filter}
+            filterBy={filterBy}
             activeCount={activeCount}
-            setFilter={setFilter}
+            setFilterBy={setFilterBy}
             visibleTodos={visibleTodos}
             deleteTodo={deleteTodo}
           />
         )}
       </div>
 
-      {/* DON'T use conditional rendering to hide the notification */}
-      {/* Add the 'hidden' class to hide the message smoothly */}
       <ErrorNotification error={error} setError={setError} />
     </div>
   );
