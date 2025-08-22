@@ -6,14 +6,16 @@ type Props = {
   handleActive: (value: number) => void;
   todo: Todo;
   deleteTodo: (id: number) => void;
-  isSubmitting: boolean;
+  isDeleting: boolean;
+  isDeletingSeveral: boolean;
 };
 
 export const ToDo: React.FC<Props> = ({
   handleActive,
   todo,
   deleteTodo,
-  isSubmitting,
+  isDeleting,
+  isDeletingSeveral,
 }) => {
   return (
     <div
@@ -29,7 +31,7 @@ export const ToDo: React.FC<Props> = ({
           id={`${todo.id}`}
           className="todo__status"
           checked={todo.completed}
-          onChange={() => handleActive(todo.id as number)}
+          onChange={() => handleActive(todo.id)}
         />
       </label>
 
@@ -47,12 +49,15 @@ export const ToDo: React.FC<Props> = ({
         ×
       </button>
       {/* overlay will cover the todo while it is being deleted or updated */}
-      {isSubmitting && (
-        <div data-cy="TodoLoader" className="modal overlay">
-          <div className="modal-background has-background-white-ter" />
-          <div className="loader" />
-        </div>
-      )}
+      <div
+        data-cy="TodoLoader"
+        className={cn('modal overlay', {
+          'is-active': isDeleting || isDeletingSeveral,
+        })}
+      >
+        <div className="modal-background has-background-white-ter" />
+        <div className="loader" />
+      </div>
     </div>
   );
 };

@@ -17,7 +17,10 @@ export const App: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingIds, setDeletingIds] = useState<number[]>([]);
   const [error, setError] = useState('');
+
   const activeCount = todos.filter(todo => !todo.completed).length;
   const field = useRef<HTMLInputElement>(null);
 
@@ -51,27 +54,33 @@ export const App: React.FC = () => {
   }
 
   function deleteTodo(id: number) {
-    setIsSubmitting(true);
+    setDeletingId(id);
+
+    setDeletingIds(ids => [...ids, id]);
 
     return todosService
       .deleteTodo(id)
       .then(() => {
         setTodos(currentTodos => currentTodos.filter(todo => todo.id !== id));
+        field.current?.focus();
       })
       .catch(e => {
         setError(`Unable to delete a todo`);
         throw e;
       })
-      .finally(() => setIsSubmitting(false));
+      .finally(() => {
+        setDeletingId(null);
+        setDeletingIds(ids => ids.filter(item => item !== id));
+      });
   }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-
     const normalizedTitle = title.trim();
 
     if (!normalizedTitle) {
       setError('Title should not be empty');
+      field.current?.focus();
 
       return;
     }
@@ -93,7 +102,9 @@ export const App: React.FC = () => {
       .then(() => {
         setTitle('');
         setTempTodo(null);
+        field.current?.focus();
       })
+      .catch(() => setTempTodo(null))
       .finally(() => setIsSubmitting(false));
   }
 
@@ -108,17 +119,25 @@ export const App: React.FC = () => {
   useEffect(() => {
     field.current?.focus();
 
+    todosService
+      .getTodos()
+      .then(setTodos)
+      .catch(() => setError('Unable to load todos'));
+  }, []);
+
+  useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(''), 3000);
 
       return () => clearTimeout(timer);
     }
-
-    todosService
-      .getTodos()
-      .then(setTodos)
-      .catch(() => setError('Unable to load todos'));
   }, [error]);
+
+  useEffect(() => {
+    if (!isSubmitting) {
+      setTimeout(() => field.current?.focus(), 0);
+    }
+  }, [isSubmitting]);
 
   if (!todosService.USER_ID) {
     return <UserWarning />;
@@ -144,19 +163,19 @@ export const App: React.FC = () => {
               handleActive={handleActive}
               todo={todo}
               deleteTodo={deleteTodo}
-              isSubmitting={isSubmitting}
+              isDeleting={deletingId === todo.id}
+              isDeletingSeveral={deletingIds.includes(todo.id)}
               key={todo.id}
             />
           ))}
           {tempTodo && (
             <TempTodo
               todo={tempTodo}
-              isSubmitting={isSubmitting}
               deleteTodo={deleteTodo}
               handleActive={handleActive}
             />
           )}
-          {/*  Delete and editting
+          {/* Editting
           {/* This todo is being edited */}
           {/* <div data-cy="Todo" className="todo">
             <label className="todo__status-label">
@@ -182,32 +201,8 @@ export const App: React.FC = () => {
               <div className="loader" />
             </div>
           </div> */}
-          {/* This todo is in loadind state */}
-          {/* <div data-cy="Todo" className="todo">
-            <label className="todo__status-label">
-              <input
-                data-cy="TodoStatus"
-                type="checkbox"
-                className="todo__status"
-              />
-            </label>
-
-            <span data-cy="TodoTitle" className="todo__title">
-              Todo is being saved now
-            </span>
-
-            <button type="button" className="todo__remove" data-cy="TodoDelete">
-              ×
-            </button> */}
-          {/* 'is-active' class puts this modal on top of the todo */}
-          {/* <div data-cy="TodoLoader" className="modal overlay is-active">
-              <div className="modal-background has-background-white-ter" />
-              <div className="loader" />
-            </div>
-          </div> */}
         </section>
 
-        {/* Hide the footer if there are no todos */}
         {todos.length > 0 && (
           <Footer
             filter={filter}
